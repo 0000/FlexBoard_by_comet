@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:GridItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
 					xmlns:s="library://ns.adobe.com/flex/spark" 
-					xmlns:mx="library://ns.adobe.com/flex/mx" clipAndEnableScrolling="true">
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					clipAndEnableScrolling="true" width="100%">
 	
 	<fx:Script>
 		<![CDATA[
@@ -9,18 +10,33 @@
 				lblData.text = data[column.dataField]
 			}
 			
+			[Bindable]
+			private var _isPwd:Boolean = false;
+			
 			override public function set data(value:Object):void
 			{
 				super.data = value;
+				_isPwd = false;
 				
 				if (data.pwd)
 				{
-					trace("undefined");
+					lblData.setStyle("color", 0xFF0000);
+					_isPwd = true;
+				}
+				else
+				{
+					lblData.setStyle("color", 0x000000);
+					_isPwd = false;
 				}
 			}
 		]]>
 	</fx:Script>
+	<s:layout>
+		<s:HorizontalLayout gap="3" verticalAlign="middle"
+							paddingTop="3" paddingLeft="10" paddingRight="10"/>
+	</s:layout>
 	
-	<s:Label id="lblData" top="9" left="7"/>
+	<s:Label id="lblData" verticalAlign="middle"/> <s:Label text="*" color="0xFF0000" visible="{_isPwd}"/>
+	
 	
 </s:GridItemRenderer>

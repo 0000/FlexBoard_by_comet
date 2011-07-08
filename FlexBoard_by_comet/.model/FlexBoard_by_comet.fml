@@ -33,9 +33,9 @@
         <item name="xPath">/</item>
       </annotation>
       <annotation name="original signature">
+        <item name="returnType">opaque</item>
         <item name="inputParamNames">bname,writer,title,content,pwd</item>
         <item name="inputParams">string,string,string,string,string</item>
-        <item name="returnType">opaque</item>
       </annotation>
       <parameter name="bname" type="string"/>
       <parameter name="writer" type="string"/>
@@ -64,9 +64,9 @@
         <item name="xPath">/</item>
       </annotation>
       <annotation name="original signature">
+        <item name="returnType">opaque</item>
         <item name="inputParamNames">showCount,cPage,bname</item>
         <item name="inputParams">integer,integer,string</item>
-        <item name="returnType">opaque</item>
       </annotation>
       <parameter name="showCount" type="integer"/>
       <parameter name="cPage" type="integer"/>
@@ -93,9 +93,9 @@
         <item name="xPath">/</item>
       </annotation>
       <annotation name="original signature">
+        <item name="returnType">opaque</item>
         <item name="inputParamNames">seq,bname</item>
         <item name="inputParams">integer,string</item>
-        <item name="returnType">opaque</item>
       </annotation>
       <parameter name="seq" type="integer"/>
       <parameter name="bname" type="string"/>
@@ -118,9 +118,9 @@
         <item name="xPath">/</item>
       </annotation>
       <annotation name="original signature">
+        <item name="returnType">opaque</item>
         <item name="inputParamNames">bname,seq,writer,title,content,pwd</item>
         <item name="inputParams">string,integer,string,string,string,string</item>
-        <item name="returnType">opaque</item>
       </annotation>
       <parameter name="bname" type="string"/>
       <parameter name="seq" type="integer"/>
@@ -128,6 +128,31 @@
       <parameter name="title" type="string"/>
       <parameter name="content" type="string"/>
       <parameter name="pwd" type="string"/>
+    </function>
+    <function name="del" return-type="string">
+      <annotation name="analyze group">
+        <item name="analyzed">true</item>
+      </annotation>
+      <annotation name="ActionScriptGeneration">
+        <item name="SerializationFilter">com.adobe.serializers.xml.XMLSerializationFilter</item>
+        <item name="method">POST</item>
+        <item name="contentType">application/x-www-form-urlencoded</item>
+        <item name="requestBodyParameter">false</item>
+        <item name="url">http://localhost:8080/board/boardDelete.jsp</item>
+      </annotation>
+      <annotation name="url group">
+        <item name="completeURL">http://localhost:8080/board/boardDelete.jsp</item>
+      </annotation>
+      <annotation name="Properties">
+        <item name="xPath">/</item>
+      </annotation>
+      <annotation name="original signature">
+        <item name="inputParamNames">bname,seq</item>
+        <item name="inputParams">string,integer</item>
+        <item name="returnType">opaque</item>
+      </annotation>
+      <parameter name="bname" type="string"/>
+      <parameter name="seq" type="integer"/>
     </function>
   </service>
   <entity name="Withflex">

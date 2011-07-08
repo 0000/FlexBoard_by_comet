@@ -7,21 +7,30 @@
 			   minWidth="500" minHeight="500"
 			   initialize="app_initializeHandler(event)">
 	
+	<fx:Style source="Style.css"/>
+	
 	<fx:Script>
 		<![CDATA[
 			import com.adobe.serializers.utility.TypeUtility;
 			
+			import component.ConfirmPasswordWindow;
+			
+			import events.PasswordConfirmEvent;
+			
 			import mx.collections.IList;
 			import mx.controls.Alert;
+			import mx.core.IFlexDisplayObject;
 			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
 			import mx.rpc.events.FaultEvent;
 			import mx.rpc.events.ResultEvent;
 			
 			import spark.events.IndexChangeEvent;
 			
 			private const DEFAULT_SHOWCOUNT:int = 10;
+			private const PAGING_COUNT:int = 9;
 			private const DEFAULT_BOARDNAME:String = "free";
-			private const WRITE_SUCCESS:String = "success";
+			private const RESULT_SUCCESS:String = "success";
 			
 			private var _showCount:int;
 			
@@ -38,7 +47,7 @@
 			// Application init Handler
 			protected function app_initializeHandler(event:FlexEvent):void
 			{
-				this.setFocus()
+				this.setFocus();
 				_showCount = DEFAULT_SHOWCOUNT;
 				_currentPage = 0;
 				_totalPageCount = 0;
@@ -108,18 +117,41 @@
 				var pagelist:IList = new ArrayList();
 				
 				var startPage:int = (_currentPage - 4 > 0)?_currentPage - 4:1;
-				var endPage:int = (_currentPage + 4 <= _totalPageCount)?_currentPage + 4:_totalPageCount;
+				var endPage:int = (startPage + PAGING_COUNT - 1 <= _totalPageCount)?startPage + PAGING_COUNT - 1:_totalPageCount;
+				
+				var selectIndex:int = -1;
 				
 				for (var i:int = startPage; i <= endPage; i++)
 				{
-						pagelist.addItem(i);
+					selectIndex++;
+					
+					if (i == _currentPage)
+						paging.selectedIndex = selectIndex;
+					
+					pagelist.addItem(i);
 				}
 				
 				if (pagelist.length > 0)
 				{
 					paging.dataProvider = pagelist;
 					paging.visible = true;
+					//paging.setFocus();
+					//paging.selectedIndex = -1;
 				}
+			}
+			
+			// Prev Page
+			protected function prevPage(event:MouseEvent):void
+			{
+				if (_currentPage - 1 > 0)
+					getList(_showCount, _currentPage - 1, _bname);
+			}
+			
+			// Next Page
+			protected function nextPage(event:MouseEvent):void
+			{
+				if (_currentPage + 1 <= _totalPageCount)
+					getList(_showCount, _currentPage + 1, _bname);
 			}
 			
 			// Page Change
@@ -157,8 +189,8 @@
 				if (event.result.currentPage && event.result.totalRowCount)
 				{
 					_getPageNum = _currentPage = event.result.currentPage;
-					_totalPageCount = int(event.result.totalRowCount / _showCount) + 1;
-					
+					_totalPageCount = Math.ceil(event.result.totalRowCount / _showCount);
+
 					// Paging
 					calPaging();
 				}
@@ -188,13 +220,26 @@
 					return;
 				
 				if (boardList.selectedItem.pwd)
-				{
-					Alert.show("패스워드", "Confirm");
-				}
+					showPasswordConfirmWin();
 				else
-				{
 					read(boardList.selectedItem.seq, boardList.selectedItem.bname);
-				}
+			}
+			
+			// Confirm Password
+			private function showPasswordConfirmWin():void
+			{
+				var confirmWin:IFlexDisplayObject = PopUpManager.createPopUp(this as DisplayObject, ConfirmPasswordWindow, true);
+				PopUpManager.centerPopUp(confirmWin);
+				confirmWin.addEventListener(PasswordConfirmEvent.CONFIRM_EVENT, pwdConfirmHandler);
+			}
+			
+			// Password Confirm Handler
+			private function pwdConfirmHandler(event:PasswordConfirmEvent):void
+			{
+				if (boardList.selectedItem.pwd == event.inputPwd)
+					read(boardList.selectedItem.seq, boardList.selectedItem.bname);
+				else
+					showPasswordConfirmWin();
 			}
 			
 			/*************************************************************************
@@ -214,7 +259,7 @@
 			// Write Result
 			protected function writeResult_resultHandler(event:ResultEvent):void
 			{
-				if (event.result == WRITE_SUCCESS)
+				if (event.result == RESULT_SUCCESS)
 				{
 					Alert.show("글등록 완료", "Success");
 					setCurrentState("list");
@@ -278,7 +323,7 @@
 			// Update Result Handler
 			protected function updateResult_resultHandler(event:ResultEvent):void
 			{
-				if (WRITE_SUCCESS)
+				if (event.result == RESULT_SUCCESS)
 				{
 					Alert.show("수정되었습니다.", "Success");
 					read(contentValueObj.result.seq, bnameUpdateTextInput.text);
@@ -293,6 +338,34 @@
 			protected function updateResult_faultHandler(event:FaultEvent):void
 			{
 				Alert.show("수정에 실패하였습니다.", "Error");
+			}
+			
+			
+			/*************************************************************************
+			 * Delete
+			 ************************************************************************/
+			// Delete
+			protected function deleteClick(event:MouseEvent):void
+			{
+				delResult.token = board.del(contentValueObj.result.bname, contentValueObj.result.seq);
+			}
+			
+			protected function delResult_resultHandler(event:ResultEvent):void
+			{
+				if (event.result == RESULT_SUCCESS)
+				{
+					Alert.show("삭제되었습니다.");
+					changeState("list");
+				}
+				else
+				{
+					Alert.show("삭제에 실패하였습니다.", "Error");
+				}
+			}
+			
+			protected function delResult_faultHandler(event:FaultEvent):void
+			{
+				Alert.show("삭제에 실패하였습니다.", "Error");
 			}
 			
 		]]>
@@ -323,6 +396,9 @@
 		<s:CallResponder id="updateResult"
 						 result="updateResult_resultHandler(event)"
 						 fault="updateResult_faultHandler(event)"/>
+		<s:CallResponder id="delResult"
+						 result="delResult_resultHandler(event)"
+						 fault="delResult_faultHandler(event)"/>
 	</fx:Declarations>
 	
 	<s:states>
@@ -338,7 +414,6 @@
 			  label="list show"
 			  horizontalCenter="0" verticalCenter="0"
 			  click="changeState('list')"/>
-	
 	
 	<!-- list -->
 	<s:Group id="group" includeIn="list" left="10" right="10" top="10" bottom="10">
@@ -370,9 +445,14 @@
 			<s:AsyncListView list="{TypeUtility.convertToCollection(listResult.lastResult.result)}"/>
 		</s:DataGrid>
 		<s:HGroup width="100%" horizontalAlign="right">
-			<s:Button label="write" click="changeState('write')"/>
+			<s:Button id="btnListWrite" label="write" click="changeState('write')"/>
 		</s:HGroup>
-		<s:ButtonBar id="paging" change="paging_changeHandler(event)"/>
+		<s:HGroup>
+			<s:Button label="◀" fontSize="18" click="prevPage(event)" />
+			<s:ButtonBar id="paging" change="paging_changeHandler(event)"/>
+			<s:Button label="▶" fontSize="18" click="nextPage(event)" />
+		</s:HGroup>
+		
 	</s:Group>
 	
 	<!-- write -->
@@ -395,8 +475,7 @@
 		</s:FormItem>
 		<s:HGroup width="100%" horizontalAlign="right" paddingLeft="40" paddingRight="40">
 			<s:Button label="List" click="changeState('list')"/>
-			<s:Button id="btnWrite" label="Write" click="writeClickHandler(event)"
-					  />
+			<s:Button id="btnWrite" label="Write" click="writeClickHandler(event)"/>
 		</s:HGroup>
 	</s:Form>
 	
@@ -418,6 +497,7 @@
 			<!-- RegDate -->
 			<s:Label text="{contentValueObj.result.regdate}"/>
 		</s:HGroup>
+		
 		<s:Line width="100%">
 			<s:stroke>
 				<s:SolidColorStroke color="0xAAAAAA" weight="1"/>
@@ -430,8 +510,16 @@
 			</s:Group>
 		</s:Scroller>
 		
-		<s:HGroup width="100%" horizontalAlign="right" paddingLeft="40" paddingRight="40">
+		<s:Line width="100%">
+			<s:stroke>
+				<s:SolidColorStroke color="0xAAAAAA" weight="1"/>
+			</s:stroke>
+		</s:Line>
+		
+		<s:HGroup width="100%" paddingLeft="10" paddingRight="10">
+			<s:Button label="Delete" click="deleteClick(event)"/>
 			<s:Button label="Modify" click="changeState('update')"/>
+			<s:Spacer width="100%"/>
 			<s:Button label="List" click="changeState('list')"/>
 		</s:HGroup>
 				  
@@ -441,10 +529,10 @@
 	<s:Form includeIn="update" left="10" right="10" top="10" bottom="10"
 			defaultButton="{btnUpdate}">
 		<s:FormItem label="Bname">
-			<s:TextInput id="bnameUpdateTextInput" text="free" editable="false"/>
+			<s:TextInput id="bnameUpdateTextInput" text="free" editable="false" enabled="false"/>
 		</s:FormItem>
 		<s:FormItem label="Writer">
-			<s:TextInput id="writerUpdateTextInput" text="{contentValueObj.result.writer}" editable="false"/>
+			<s:TextInput id="writerUpdateTextInput" text="{contentValueObj.result.writer}" editable="false" enabled="false"/>
 		</s:FormItem>
 		<s:FormItem label="Title">
 			<s:TextInput id="titleUpdateTextInput" text="{contentValueObj.result.title}"/>
