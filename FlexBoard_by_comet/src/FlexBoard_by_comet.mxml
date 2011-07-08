@@ -168,6 +168,7 @@
 			protected function listResult_faultHandler(event:FaultEvent):void
 			{
 				Alert.show("List를 불러오지 못하였습니다.", "Error");
+				changeState('default');
 			}
 			
 			// RegDate DataGrid LabelFunction
@@ -186,7 +187,14 @@
 				if (boardList.selectedItem == null)
 					return;
 				
-				read(boardList.selectedItem.seq, boardList.selectedItem.bname);
+				if (boardList.selectedItem.pwd)
+				{
+					Alert.show("패스워드", "Confirm");
+				}
+				else
+				{
+					read(boardList.selectedItem.seq, boardList.selectedItem.bname);
+				}
 			}
 			
 			/*************************************************************************
@@ -348,7 +356,7 @@
 			<s:columns>
 				<s:ArrayList>
 					<s:GridColumn dataField="seq" headerText="No." width="40"></s:GridColumn>
-					<s:GridColumn dataField="title" headerText="제목"></s:GridColumn>
+					<s:GridColumn dataField="title" headerText="제목" itemRenderer="itemRenderer.SubjectItemRenderer"></s:GridColumn>
 					<s:GridColumn dataField="writer" headerText="작성자" width="60"></s:GridColumn>
 					<s:GridColumn dataField="hit" headerText="조회수" width="50"></s:GridColumn>
 					<s:GridColumn dataField="regdate" headerText="작성일" width="80" labelFunction="dateFormat"></s:GridColumn>
