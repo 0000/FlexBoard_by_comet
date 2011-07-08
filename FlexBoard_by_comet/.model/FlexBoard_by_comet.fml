@@ -1,0 +1,196 @@
+
+<model xmlns="http://ns.adobe.com/Fiber/1.0">
+  <annotation name="ActionScriptGeneration">
+    <item name="FullyQualifyReferences">true</item>
+  </annotation>
+  <service name="Board">
+    <annotation name="ActionScriptGeneration">
+      <item name="ServiceType">HTTPMultiService</item>
+      <item name="Package">services.board</item>
+    </annotation>
+    <annotation name="ServiceTypeGroup">
+      <item name="ServiceBackendType">HTTPService</item>
+    </annotation>
+    <annotation name="ServiceConfig">
+      <item name="DEFAULT_ENTITY_PACKAGE">valueObjects</item>
+      <item name="LINKED_FILE"></item>
+    </annotation>
+    <function name="write" return-type="string">
+      <annotation name="analyze group">
+        <item name="analyzed">true</item>
+      </annotation>
+      <annotation name="ActionScriptGeneration">
+        <item name="SerializationFilter">com.adobe.serializers.xml.XMLSerializationFilter</item>
+        <item name="method">POST</item>
+        <item name="contentType">application/x-www-form-urlencoded</item>
+        <item name="requestBodyParameter">false</item>
+        <item name="url">http://localhost:8080/board/boardAdd.jsp</item>
+      </annotation>
+      <annotation name="url group">
+        <item name="completeURL">http://localhost:8080/board/boardAdd.jsp</item>
+      </annotation>
+      <annotation name="Properties">
+        <item name="xPath">/</item>
+      </annotation>
+      <annotation name="original signature">
+        <item name="inputParamNames">bname,writer,title,content,pwd</item>
+        <item name="inputParams">string,string,string,string,string</item>
+        <item name="returnType">opaque</item>
+      </annotation>
+      <parameter name="bname" type="string"/>
+      <parameter name="writer" type="string"/>
+      <parameter name="title" type="string"/>
+      <parameter name="content" type="string"/>
+      <parameter name="pwd" type="string"/>
+    </function>
+    <function name="list" return-type="Withflex">
+      <annotation name="analyze group">
+        <item name="analyzed">true</item>
+      </annotation>
+      <annotation name="ActionScriptGeneration">
+        <item name="SerializationFilter">com.adobe.serializers.xml.XMLSerializationFilter</item>
+        <item name="method">POST</item>
+        <item name="contentType">application/x-www-form-urlencoded</item>
+        <item name="requestBodyParameter">false</item>
+        <item name="url">http://localhost:8080/board/boardList.jsp</item>
+      </annotation>
+      <annotation name="url group">
+        <item name="completeURL">http://localhost:8080/board/boardList.jsp</item>
+      </annotation>
+      <annotation name="ValidProperties">
+        <item name="propertySpecifier">currentPage,totalRowCount,result</item>
+      </annotation>
+      <annotation name="Properties">
+        <item name="xPath">/</item>
+      </annotation>
+      <annotation name="original signature">
+        <item name="inputParamNames">showCount,cPage,bname</item>
+        <item name="inputParams">integer,integer,string</item>
+        <item name="returnType">opaque</item>
+      </annotation>
+      <parameter name="showCount" type="integer"/>
+      <parameter name="cPage" type="integer"/>
+      <parameter name="bname" type="string"/>
+    </function>
+    <function name="read" return-type="ContentValueObj">
+      <annotation name="analyze group">
+        <item name="analyzed">true</item>
+      </annotation>
+      <annotation name="ActionScriptGeneration">
+        <item name="SerializationFilter">com.adobe.serializers.xml.XMLSerializationFilter</item>
+        <item name="method">POST</item>
+        <item name="contentType">application/x-www-form-urlencoded</item>
+        <item name="requestBodyParameter">false</item>
+        <item name="url">http://localhost:8080/board/boardContent.jsp</item>
+      </annotation>
+      <annotation name="url group">
+        <item name="completeURL">http://localhost:8080/board/boardContent.jsp</item>
+      </annotation>
+      <annotation name="ValidProperties">
+        <item name="propertySpecifier">result</item>
+      </annotation>
+      <annotation name="Properties">
+        <item name="xPath">/</item>
+      </annotation>
+      <annotation name="original signature">
+        <item name="inputParamNames">seq,bname</item>
+        <item name="inputParams">integer,string</item>
+        <item name="returnType">opaque</item>
+      </annotation>
+      <parameter name="seq" type="integer"/>
+      <parameter name="bname" type="string"/>
+    </function>
+    <function name="update" return-type="string">
+      <annotation name="analyze group">
+        <item name="analyzed">true</item>
+      </annotation>
+      <annotation name="ActionScriptGeneration">
+        <item name="SerializationFilter">com.adobe.serializers.xml.XMLSerializationFilter</item>
+        <item name="method">POST</item>
+        <item name="contentType">application/x-www-form-urlencoded</item>
+        <item name="requestBodyParameter">false</item>
+        <item name="url">http://localhost:8080/board/boardUpdate.jsp</item>
+      </annotation>
+      <annotation name="url group">
+        <item name="completeURL">http://localhost:8080/board/boardUpdate.jsp</item>
+      </annotation>
+      <annotation name="Properties">
+        <item name="xPath">/</item>
+      </annotation>
+      <annotation name="original signature">
+        <item name="inputParamNames">bname,seq,writer,title,content,pwd</item>
+        <item name="inputParams">string,integer,string,string,string,string</item>
+        <item name="returnType">opaque</item>
+      </annotation>
+      <parameter name="bname" type="string"/>
+      <parameter name="seq" type="integer"/>
+      <parameter name="writer" type="string"/>
+      <parameter name="title" type="string"/>
+      <parameter name="content" type="string"/>
+      <parameter name="pwd" type="string"/>
+    </function>
+  </service>
+  <entity name="Withflex">
+    <annotation name="EntityProperties">
+      <item name="EntityOriginalName">Withflex</item>
+    </annotation>
+    <annotation name="service Group">
+      <item name="service">Board</item>
+    </annotation>
+    <annotation name="ServerProperties">
+      <item name="IncludeRemoteClass">nonempty</item>
+    </annotation>
+    <annotation name="list">
+      <item name="propertySpecifier">currentPage,totalRowCount,result</item>
+    </annotation>
+    <annotation name="ActionScriptGeneration">
+      <item name="Package">valueObjects</item>
+    </annotation>
+    <property name="currentPage" type="string"/>
+    <property name="totalRowCount" type="string"/>
+    <property name="result" type="Result[]"/>
+  </entity>
+  <entity name="Result">
+    <annotation name="EntityProperties">
+      <item name="EntityOriginalName">Result</item>
+    </annotation>
+    <annotation name="service Group">
+      <item name="service">Board</item>
+    </annotation>
+    <annotation name="ServerProperties">
+      <item name="IncludeRemoteClass">nonempty</item>
+    </annotation>
+    <annotation name="ActionScriptGeneration">
+      <item name="Package">valueObjects</item>
+    </annotation>
+    <property name="seq" type="integer"/>
+    <property name="writer" type="string"/>
+    <property name="title" type="string"/>
+    <property name="content" type="string"/>
+    <property name="pwd" type="string"/>
+    <property name="hit" type="integer"/>
+    <property name="groups" type="integer"/>
+    <property name="step" type="integer"/>
+    <property name="level" type="integer"/>
+    <property name="bname" type="string"/>
+    <property name="regdate" type="string"/>
+  </entity>
+  <entity name="ContentValueObj">
+    <annotation name="EntityProperties">
+      <item name="EntityOriginalName">Withflex</item>
+    </annotation>
+    <annotation name="service Group">
+      <item name="service">Board</item>
+    </annotation>
+    <annotation name="ServerProperties">
+      <item name="IncludeRemoteClass">nonempty</item>
+    </annotation>
+    <annotation name="read">
+      <item name="propertySpecifier">result</item>
+    </annotation>
+    <annotation name="ActionScriptGeneration">
+      <item name="Package">valueObjects</item>
+    </annotation>
+    <property name="result" type="Result"/>
+  </entity>
+</model>

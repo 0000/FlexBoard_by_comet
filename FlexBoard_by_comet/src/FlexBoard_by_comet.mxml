@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:board="services.board.*"
+			   xmlns:valueObjects="valueObjects.*"
+			   minWidth="500" minHeight="500"
+			   initialize="app_initializeHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serializers.utility.TypeUtility;
+			
+			import mx.collections.IList;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.events.IndexChangeEvent;
+			
+			private const DEFAULT_SHOWCOUNT:int = 10;
+			private const DEFAULT_BOARDNAME:String = "free";
+			private const WRITE_SUCCESS:String = "success";
+			
+			private var _showCount:int;
+			
+			[Bindable]
+			private var _currentPage:int;
+			
+			[Bindable]
+			private var _totalPageCount:int;
+			
+			private var _getPageNum:int;
+			
+			private var _bname:String;
+			
+			// Application init Handler
+			protected function app_initializeHandler(event:FlexEvent):void
+			{
+				this.setFocus()
+				_showCount = DEFAULT_SHOWCOUNT;
+				_currentPage = 0;
+				_totalPageCount = 0;
+				_getPageNum = 1;
+				_bname = DEFAULT_BOARDNAME;
+			}
+			
+			// Change State
+			protected function changeState(stateName:String):void
+			{
+				setCurrentState(stateName);
+			}
+			
+			// Convert Date Format
+			private function convertDateFormat(data:String):String
+			{
+				var datetime:Array = data.split(" ");
+				var date:String = datetime[0];
+				var time:String = datetime[1];
+				
+				if (date == null || time == null)
+					return data;
+				
+				var dateArray:Array = date.split("-");
+				var timeArray:Array = time.substr(0, 8).split(":");
+				
+				var writeDate:Date = new Date(dateArray[0], dateArray[1] - 1, dateArray[2], timeArray[0], timeArray[1], timeArray[2]);
+				var todayDate:Date = new Date();
+				
+				if (writeDate.fullYear == todayDate.fullYear &&
+					writeDate.month == todayDate.month &&
+					writeDate.date == todayDate.date)
+					return timeFormatter.format(writeDate);
+				else
+					return dateFormatter.format(writeDate);
+			}
+			
+			// Override State Change
+			override protected function stateChanged(oldState:String, newState:String, recursive:Boolean):void
+			{
+				super.stateChanged(oldState, newState, recursive);
+				
+				switch (newState)
+				{
+					case "list" :
+						getList(DEFAULT_SHOWCOUNT, _getPageNum, DEFAULT_BOARDNAME);
+						paging.visible = false;
+						paging.dataProvider = null;
+						break;
+					case "write" :
+						if (writerTextInput)
+						{
+							writerTextInput.text = "";
+							writerTextInput.setFocus();
+						}
+						if (titleTextInput) titleTextInput.text = "";
+						if (contentTextArea) contentTextArea.text = "";
+						if (pwdTextInput) pwdTextInput.text = "";
+						break;
+				}
+			}
+			
+			// Cal Paging
+			protected function calPaging():void
+			{
+				// page list 9개 표시
+				var pagelist:IList = new ArrayList();
+				
+				var startPage:int = (_currentPage - 4 > 0)?_currentPage - 4:1;
+				var endPage:int = (_currentPage + 4 <= _totalPageCount)?_currentPage + 4:_totalPageCount;
+				
+				for (var i:int = startPage; i <= endPage; i++)
+				{
+						pagelist.addItem(i);
+				}
+				
+				if (pagelist.length > 0)
+				{
+					paging.dataProvider = pagelist;
+					paging.visible = true;
+				}
+			}
+			
+			// Page Change
+			protected function paging_changeHandler(event:IndexChangeEvent):void
+			{
+				getList(_showCount, paging.selectedItem, _bname);
+			}
+			
+			
+			/*************************************************************************
+			 * List
+			 ************************************************************************/
+			// DataGrid Creation Complete Handler
+			protected function getList(showCount:int, getPageNum:int, bname:String):void
+			{
+				if (getPageNum < 0)
+					_getPageNum = 1;
+				else
+					_getPageNum = getPageNum;
+				
+				if (showCount < 1)
+					_showCount = DEFAULT_SHOWCOUNT;
+				else
+					_showCount = showCount;
+				
+				if (bname != "")
+					_bname = bname;
+				
+				listResult.token = board.list(_showCount, _getPageNum, _bname);
+			}
+
+			// List Result Handler
+			protected function listResult_resultHandler(event:ResultEvent):void
+			{
+				if (event.result.currentPage && event.result.totalRowCount)
+				{
+					_getPageNum = _currentPage = event.result.currentPage;
+					_totalPageCount = int(event.result.totalRowCount / _showCount) + 1;
+					
+					// Paging
+					calPaging();
+				}
+			}
+			
+			// List Fault Handler
+			protected function listResult_faultHandler(event:FaultEvent):void
+			{
+				Alert.show("List를 불러오지 못하였습니다.", "Error");
+			}
+			
+			// RegDate DataGrid LabelFunction
+			private function dateFormat(dateItem:Object, publish_date:GridColumn):String{
+				var data:String = dateItem.regdate;
+				
+				if (data == "")
+					return dateItem.regdate;
+				
+				return convertDateFormat(data);
+			}
+			
+			// DataGrid Item Double Click Handler
+			protected function itemDoubleClickHandler(event:MouseEvent):void
+			{
+				if (boardList.selectedItem == null)
+					return;
+				
+				read(boardList.selectedItem.seq, boardList.selectedItem.bname);
+			}
+			
+			/*************************************************************************
+			 * Write
+			 ************************************************************************/
+			// Write Button Click Handler
+			protected function writeClickHandler(event:MouseEvent):void
+			{
+				writeResult.token = board.write(
+					bnameTextInput.text,
+					writerTextInput.text,
+					titleTextInput.text,
+					contentTextArea.text,
+					pwdTextInput.text);
+			}
+			
+			// Write Result
+			protected function writeResult_resultHandler(event:ResultEvent):void
+			{
+				if (event.result == WRITE_SUCCESS)
+				{
+					Alert.show("글등록 완료", "Success");
+					setCurrentState("list");
+				}
+				else
+				{
+					Alert.show("글등록에 실패하였습니다.", "Error");
+				}
+			}
+			
+			// Write Result Fault
+			protected function writeResult_faultHandler(event:FaultEvent):void
+			{
+				Alert.show("글등록에 실패하였습니다.", "Error");
+			}
+			
+			/*************************************************************************
+			 * Read
+			 ************************************************************************/
+			// Read Service Call
+			protected function read(seq:int, bname:String):void
+			{
+				readResult.token = board.read(seq, bname);
+			}
+			
+			// Read Result Handler
+			protected function readResult_resultHandler(event:ResultEvent):void
+			{
+				contentValueObj = readResult.lastResult as ContentValueObj;
+				contentValueObj.result.regdate = convertDateFormat(contentValueObj.result.regdate);
+				setCurrentState("read");
+			}
+			
+			// Read Fault Handler
+			protected function readResult_faultHandler(event:FaultEvent):void
+			{
+				Alert.show("내용을 불러오지 못하였습니다.", "Error");
+			}
+			
+			/*************************************************************************
+			 * Update
+			 ************************************************************************/
+			// Update Service Call
+			protected function update(bname:String, seq:int, writer:String, title:String, content:String, pwd:String):void
+			{
+				updateResult.token = board.update(bname, seq, writer, title, content, pwd);
+			}
+			
+			// Update Button Click Handler
+			protected function updateClickHandler(event:MouseEvent):void
+			{
+				updateResult.token = board.update(
+					bnameUpdateTextInput.text,
+					contentValueObj.result.seq,
+					writerUpdateTextInput.text,
+					titleUpdateTextInput.text,
+					contentUpdateTextArea.text,
+					pwdUpdateTextInput.text);
+			}
+			
+			// Update Result Handler
+			protected function updateResult_resultHandler(event:ResultEvent):void
+			{
+				if (WRITE_SUCCESS)
+				{
+					Alert.show("수정되었습니다.", "Success");
+					read(contentValueObj.result.seq, bnameUpdateTextInput.text);
+				}
+				else
+				{
+					Alert.show("수정에 실패하였습니다.", "Error");
+				}
+			}
+			
+			// Update Fault Handler
+			protected function updateResult_faultHandler(event:FaultEvent):void
+			{
+				Alert.show("수정에 실패하였습니다.", "Error");
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:DateTimeFormatter id="dateFormatter" dateTimePattern="yyyy.MM.dd" />
+		<s:DateTimeFormatter id="timeFormatter" dateTimePattern="HH:mm:ss" />
+		
+		<board:Board id="board"
+					 fault="Alert.show(event.fault.faultString + '\n' + event.fault.faultDetail)"
+					 showBusyCursor="true"/>
+		
+		<s:CallResponder id="writeResult"
+						 result="writeResult_resultHandler(event)"
+						 fault="writeResult_faultHandler(event)"/>
+		<s:CallResponder id="listResult"
+						 result="listResult_resultHandler(event)"
+						 fault="listResult_faultHandler(event)"/>
+		<s:CallResponder id="readResult"
+						 result="readResult_resultHandler(event)"
+						 fault="readResult_faultHandler(event)"/>
+		<valueObjects:ContentValueObj id="contentValueObj">
+			<valueObjects:result.default>
+				<valueObjects:Result/>
+			</valueObjects:result.default>
+		</valueObjects:ContentValueObj>
+		<s:CallResponder id="updateResult"
+						 result="updateResult_resultHandler(event)"
+						 fault="updateResult_faultHandler(event)"/>
+	</fx:Declarations>
+	
+	<s:states>
+		<s:State name="default"/>
+		<s:State name="list"/>
+		<s:State name="write"/>
+		<s:State name="read"/>
+		<s:State name="update"/>
+	</s:states>
+	
+	<!-- default -->
+	<s:Button includeIn="default"
+			  label="list show"
+			  horizontalCenter="0" verticalCenter="0"
+			  click="changeState('list')"/>
+	
+	
+	<!-- list -->
+	<s:Group id="group" includeIn="list" left="10" right="10" top="10" bottom="10">
+		<s:layout>
+			<s:VerticalLayout horizontalAlign="center"/>
+		</s:layout>
+		
+		<s:HGroup width="100%">
+			<s:Label text="{'Page : ' + _currentPage + ' / ' + _totalPageCount}"/>
+		</s:HGroup>
+		
+		<s:DataGrid id="boardList" includeIn="list" width="100%"
+					requestedRowCount="10" doubleClickEnabled="true"
+					doubleClick="itemDoubleClickHandler(event)">
+			<s:columns>
+				<s:ArrayList>
+					<s:GridColumn dataField="seq" headerText="No." width="40"></s:GridColumn>
+					<s:GridColumn dataField="title" headerText="제목"></s:GridColumn>
+					<s:GridColumn dataField="writer" headerText="작성자" width="60"></s:GridColumn>
+					<s:GridColumn dataField="hit" headerText="조회수" width="50"></s:GridColumn>
+					<s:GridColumn dataField="regdate" headerText="작성일" width="80" labelFunction="dateFormat"></s:GridColumn>
+				</s:ArrayList>
+			</s:columns>
+			<s:typicalItem>
+				<fx:Object bname="bname1" content="content1" groups="groups1" hit="hit1"
+						   level="level1" pwd="pwd1" regdate="regdate1" seq="seq1" step="step1"
+						   title="title1" writer="writer1"></fx:Object>
+			</s:typicalItem>
+			<s:AsyncListView list="{TypeUtility.convertToCollection(listResult.lastResult.result)}"/>
+		</s:DataGrid>
+		<s:HGroup width="100%" horizontalAlign="right">
+			<s:Button label="write" click="changeState('write')"/>
+		</s:HGroup>
+		<s:ButtonBar id="paging" change="paging_changeHandler(event)"/>
+	</s:Group>
+	
+	<!-- write -->
+	<s:Form includeIn="write" left="10" right="10" top="10" bottom="10"
+			defaultButton="{btnWrite}">
+		<s:FormItem label="Bname">
+			<s:TextInput id="bnameTextInput" text="free" editable="false"/>
+		</s:FormItem>
+		<s:FormItem label="Writer">
+			<s:TextInput id="writerTextInput"/>
+		</s:FormItem>
+		<s:FormItem label="Title">
+			<s:TextInput id="titleTextInput"/>
+		</s:FormItem>
+		<s:FormItem width="100%" label="Content">
+			<s:TextArea id="contentTextArea" width="100%" height="400"/>
+		</s:FormItem>
+		<s:FormItem label="Pwd">
+			<s:TextInput id="pwdTextInput" displayAsPassword="true"/>
+		</s:FormItem>
+		<s:HGroup width="100%" horizontalAlign="right" paddingLeft="40" paddingRight="40">
+			<s:Button label="List" click="changeState('list')"/>
+			<s:Button id="btnWrite" label="Write" click="writeClickHandler(event)"
+					  />
+		</s:HGroup>
+	</s:Form>
+	
+	<!-- Read -->
+	<s:Group includeIn="read" left="10" right="10" top="10" bottom="10">
+		<s:layout>
+			<s:VerticalLayout gap="15"/>
+		</s:layout>
+		
+		<s:HGroup width="100%">
+			<!-- Board Name -->
+			<s:Label text="{'[' + contentValueObj.result.bname + ']'}"/>
+			<!-- Title -->
+			<s:Label text="{contentValueObj.result.title}"/>
+			
+			<s:Spacer width="100%"/>
+			<!-- Hit -->
+			<s:Label text="{'조회수 : ' + contentValueObj.result.hit}"/>
+			<!-- RegDate -->
+			<s:Label text="{contentValueObj.result.regdate}"/>
+		</s:HGroup>
+		<s:Line width="100%">
+			<s:stroke>
+				<s:SolidColorStroke color="0xAAAAAA" weight="1"/>
+			</s:stroke>
+		</s:Line>
+		
+		<s:Scroller width="100%" height="100%">
+			<s:Group width="100%" height="100%">
+				<s:Label text="{contentValueObj.result.content}"/>
+			</s:Group>
+		</s:Scroller>
+		
+		<s:HGroup width="100%" horizontalAlign="right" paddingLeft="40" paddingRight="40">
+			<s:Button label="Modify" click="changeState('update')"/>
+			<s:Button label="List" click="changeState('list')"/>
+		</s:HGroup>
+				  
+	</s:Group>
+	
+	<!-- Update -->
+	<s:Form includeIn="update" left="10" right="10" top="10" bottom="10"
+			defaultButton="{btnUpdate}">
+		<s:FormItem label="Bname">
+			<s:TextInput id="bnameUpdateTextInput" text="free" editable="false"/>
+		</s:FormItem>
+		<s:FormItem label="Writer">
+			<s:TextInput id="writerUpdateTextInput" text="{contentValueObj.result.writer}" editable="false"/>
+		</s:FormItem>
+		<s:FormItem label="Title">
+			<s:TextInput id="titleUpdateTextInput" text="{contentValueObj.result.title}"/>
+		</s:FormItem>
+		<s:FormItem width="100%" label="Content">
+			<s:TextArea id="contentUpdateTextArea" width="100%" height="400"
+						text="{contentValueObj.result.content}"/>
+		</s:FormItem>
+		<s:FormItem label="Pwd">
+			<s:TextInput id="pwdUpdateTextInput" displayAsPassword="true"/>
+		</s:FormItem>
+		<s:HGroup width="100%" horizontalAlign="right" paddingLeft="40" paddingRight="40">
+			<s:Button label="List" click="changeState('list')"/>
+			<s:Button id="btnUpdate" label="Write" click="updateClickHandler(event)"/>
+			<s:Button label="Cancel" click="changeState('read')"/>
+		</s:HGroup>
+	</s:Form>
+	
+</s:Application>
